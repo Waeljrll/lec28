@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\productCreateEvent;
 use App\Mail\ProductCreatedMail;
 use App\Models\Category;
 use App\Models\Product;
@@ -59,7 +60,7 @@ class ProductController extends Controller
         }
 
         $product = Product::create($data);
-
+        event(new productCreateEvent($product)) ;
         Mail::send(new ProductCreatedMail(Auth::user(), $product));
 
         return redirect()->route("products.index")->with("success", "Product Created successfully");

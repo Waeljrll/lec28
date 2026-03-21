@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Events\userCreateEvent;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\RegisterRequest;
 use App\Mail\UserRegisterMail;
@@ -44,7 +45,8 @@ class RegisteredUserController extends Controller
             'email' => $request->email,
             'password' => Hash::make($request->password),
         ]);
-        Mail::send(new UserRegisterMail($user));
+
+        // Mail::send(new UserRegisterMail($user));
 
         event(new Registered($user));
 
