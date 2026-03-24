@@ -1,24 +1,21 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Api;
 
 use App\Events\productCreateEvent;
 use App\Http\Controllers\Controller;
-use App\Mail\ProductCreatedMail;
-use App\Models\Category;
+use App\Http\Resources\ProductResource;
 use App\Models\Product;
 use App\Services\ProductService;
-use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use App\Traits\ApiResponseTrait;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
-use PhpParser\Node\Stmt\TryCatch;
 
 class ProductController extends Controller
 {
-    use AuthorizesRequests;
+    use ApiResponseTrait;
+
+
     /**
      * Display a listing of the resource.
      */
@@ -27,28 +24,26 @@ class ProductController extends Controller
 
         $this->ProductService = $ProductService;
     }
-    public function index()
+    public function index(Request $request)
     {
         try {
-            $products = Product::with(['category', 'createdBy'])->latest()->get();
-            return view("products.index", ['products' => $products]);
+            $products = Product::with(['category', 'createdBy'])->latest()->paginate($request->limit);
+            return $this->success(ProductResource::collection($products));
         } catch (\Throwable $th) {
-            Log::info($th->getMessage());
+            return $this->error($th->getMessage());
         }
-    }
+        /*try {
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        $this->authorize("create_product");
-        // if(Gate::allows( 'create_product')){
-        $categories = Category::all();
-        return view("products.create", ['categories' => $categories]);
+            $limit = min($request->limit ?? 10, 100);
 
-        // }
-        // abort(4030);
+            $products = Product::with(['category', 'createdBy'])
+                ->latest()
+                ->paginate($limit);
+
+            return $this->success(ProductResource::collection($products));
+        } catch (\Throwable $th) {
+            return $this->error($th->getMessage());
+        }*/
     }
 
     /**
@@ -56,12 +51,12 @@ class ProductController extends Controller
      */
     public function store(Request $request)
     {
+
         try {
             $this->ProductService->createProduct($request);
-
-            return redirect()->route("products.index")->with("success", "Product Created successfully");
-        }catch (\Throwable $th) {
-            Log::info($th->getMessage());
+            return $this->success();
+        } catch (\Throwable $th) {
+            return $this->error($th->getMessage());
         }
     }
 
@@ -71,22 +66,13 @@ class ProductController extends Controller
     public function show(string $id)
     {
         $product = Product::findOrFail($id);
-        return view("products.show", ['product' => $product]);
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Product $product)
-    {
-        $categories = Category::all();
-        return view("products.edit", ['product' => $product, 'categories' => $categories]);
+        return $this->success(new ProductResource($product));
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Product $product)
+    public function update(Product $product, Request $request)
     {
         $request->validate([
             "title" => "required|string|max:255",
@@ -108,7 +94,7 @@ class ProductController extends Controller
         }
 
         $product->update($data);
-        return redirect()->route("products.index")->with("success", "Product Updated successfully");
+        return $this->success($product);
     }
 
     /**
@@ -116,12 +102,11 @@ class ProductController extends Controller
      */
     public function destroy(Product $product)
     {
-        $this->authorize("create_product", $product);
         if ($product->image && Storage::disk("public")->exists($product->image)) {
             Storage::disk("public")->delete($product->image);
         }
 
         $product->delete();
-        return redirect()->route("products.index")->with("success", "Product deleted successfully");
+        return $this->success();
     }
 }

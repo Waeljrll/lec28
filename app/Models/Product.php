@@ -27,7 +27,7 @@ class Product extends Model
     {
         static::creating(function($product){
             // $product->slug = Str::slug($product->title);
-            $product->created_by = Auth::user()->id;
+            $product->created_by = 1;
         });
         // static::updating(function($product){
         //     if($product->is_locked){

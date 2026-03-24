@@ -25,6 +25,7 @@ require __DIR__.'/auth.php';
 // Route::put();
 // Route::patch();
 // Route::delete();
+Route::get('logs', [\Rap2hpoutre\LaravelLogViewer\LogViewerController::class, 'index']);
 
 Route::resource("products",ProductController::class)->middleware(["auth","can:create_product"]);
 
